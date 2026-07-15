@@ -1,0 +1,240 @@
+- generic [active] [ref=f15e1]:
+  - banner [ref=f15e2]:
+    - generic [ref=f15e3]: Tally
+    - generic [ref=f15e4]: demo data
+  - generic [ref=f15e5]:
+    - complementary [ref=f15e6]:
+      - navigation [ref=f15e7]:
+        - link "Dashboard" [ref=f15e8] [cursor=pointer]:
+          - /url: /
+        - link "Accounts" [ref=f15e9] [cursor=pointer]:
+          - /url: /accounts
+        - link "Transfers" [ref=f15e10] [cursor=pointer]:
+          - /url: /transfers
+        - link "Fraud" [ref=f15e11] [cursor=pointer]:
+          - /url: /fraud
+    - main [ref=f15e12]:
+      - generic [ref=f15e13]:
+        - heading "Transfers" [level=1] [ref=f15e14]
+        - generic [ref=f15e15]:
+          - heading "New transfer" [level=2] [ref=f15e16]
+          - generic [ref=f15e17]:
+            - generic [ref=f15e18]:
+              - text: From
+              - combobox "From" [ref=f15e19]:
+                - option "Select account" [disabled] [selected]
+                - option "treasury (USD)"
+                - option "alice nguyen (USD)"
+                - option "bob martinez (USD)"
+                - option "carmen okafor (USD)"
+                - option "devi sharma (USD)"
+                - option "elias brandt (USD)"
+            - generic [ref=f15e20]:
+              - text: To
+              - combobox "To" [ref=f15e21]:
+                - option "Select account" [disabled] [selected]
+                - option "treasury (USD)"
+                - option "alice nguyen (USD)"
+                - option "bob martinez (USD)"
+                - option "carmen okafor (USD)"
+                - option "devi sharma (USD)"
+                - option "elias brandt (USD)"
+            - generic [ref=f15e22]:
+              - generic [ref=f15e23]: Amount (USD)
+              - textbox "Amount (USD)" [ref=f15e24]:
+                - /placeholder: "0.00"
+            - button "Send" [ref=f15e26] [cursor=pointer]
+          - generic [ref=f15e27]:
+            - generic [ref=f15e28]: Idempotency key
+            - generic [ref=f15e29]: 49dfaba4-d705-4e3e-9908-b336e8bf1017
+        - table [ref=f15e32]:
+          - rowgroup [ref=f15e33]:
+            - row [ref=f15e34]:
+              - columnheader "Transfer" [ref=f15e35]
+              - columnheader "Date" [ref=f15e36]
+              - columnheader "From" [ref=f15e37]
+              - columnheader "To" [ref=f15e38]
+              - columnheader "Amount" [ref=f15e39]
+              - columnheader "Status" [ref=f15e40]
+          - rowgroup [ref=f15e41]:
+            - row [ref=f15e42]:
+              - cell [ref=f15e43]:
+                - link "#20" [ref=f15e44] [cursor=pointer]:
+                  - /url: /transfers/20
+              - cell "Jul 14, 06:29 PM" [ref=f15e46]
+              - cell "acct-2" [ref=f15e47]
+              - cell "acct-3" [ref=f15e49]
+              - cell "$42.50 USD" [ref=f15e51]
+              - cell "completed" [ref=f15e52]
+            - row [ref=f15e54]:
+              - cell [ref=f15e55]:
+                - link "#19" [ref=f15e56] [cursor=pointer]:
+                  - /url: /transfers/19
+              - cell "Jul 11, 06:24 PM" [ref=f15e58]
+              - cell "acct-2" [ref=f15e59]
+              - cell "acct-6" [ref=f15e61]
+              - cell "$1,550.00 USD" [ref=f15e63]
+              - cell "completed" [ref=f15e64]
+            - row [ref=f15e66]:
+              - cell [ref=f15e67]:
+                - link "#18" [ref=f15e68] [cursor=pointer]:
+                  - /url: /transfers/18
+              - cell "Jul 14, 06:24 PM" [ref=f15e70]
+              - cell "acct-6" [ref=f15e71]
+              - cell "acct-4" [ref=f15e73]
+              - cell "$1,200.00 USD" [ref=f15e75]
+              - cell "completed" [ref=f15e76]
+            - row [ref=f15e78]:
+              - cell [ref=f15e79]:
+                - link "#17" [ref=f15e80] [cursor=pointer]:
+                  - /url: /transfers/17
+              - cell "Jul 9, 06:24 PM" [ref=f15e82]
+              - cell "acct-3" [ref=f15e83]
+              - cell "acct-2" [ref=f15e85]
+              - cell "$9.50 USD" [ref=f15e87]
+              - cell "completed" [ref=f15e88]
+            - row [ref=f15e90]:
+              - cell [ref=f15e91]:
+                - link "#16" [ref=f15e92] [cursor=pointer]:
+                  - /url: /transfers/16
+              - cell "Jul 10, 06:24 PM" [ref=f15e94]
+              - cell "acct-5" [ref=f15e95]
+              - cell "acct-3" [ref=f15e97]
+              - cell "$18.75 USD" [ref=f15e99]
+              - cell "completed" [ref=f15e100]
+            - row [ref=f15e102]:
+              - cell [ref=f15e103]:
+                - link "#15" [ref=f15e104] [cursor=pointer]:
+                  - /url: /transfers/15
+              - cell "Jul 13, 06:24 PM" [ref=f15e106]
+              - cell "acct-2" [ref=f15e107]
+              - cell "acct-4" [ref=f15e109]
+              - cell "$22.00 USD" [ref=f15e111]
+              - cell "completed" [ref=f15e112]
+            - row [ref=f15e114]:
+              - cell [ref=f15e115]:
+                - link "#14" [ref=f15e116] [cursor=pointer]:
+                  - /url: /transfers/14
+              - cell "Jul 11, 06:24 PM" [ref=f15e118]
+              - cell "acct-6" [ref=f15e119]
+              - cell "acct-3" [ref=f15e121]
+              - cell "$150.00 USD" [ref=f15e123]
+              - cell "completed" [ref=f15e124]
+            - row [ref=f15e126]:
+              - cell [ref=f15e127]:
+                - link "#13" [ref=f15e128] [cursor=pointer]:
+                  - /url: /transfers/13
+              - cell "Jul 12, 06:24 PM" [ref=f15e130]
+              - cell "acct-4" [ref=f15e131]
+              - cell "acct-6" [ref=f15e133]
+              - cell "$53.00 USD" [ref=f15e135]
+              - cell "completed" [ref=f15e136]
+            - row [ref=f15e138]:
+              - cell [ref=f15e139]:
+                - link "#12" [ref=f15e140] [cursor=pointer]:
+                  - /url: /transfers/12
+              - cell "Jul 10, 06:24 PM" [ref=f15e142]
+              - cell "acct-3" [ref=f15e143]
+              - cell "acct-5" [ref=f15e145]
+              - cell "$6.40 USD" [ref=f15e147]
+              - cell "completed" [ref=f15e148]
+            - row [ref=f15e150]:
+              - cell [ref=f15e151]:
+                - link "#11" [ref=f15e152] [cursor=pointer]:
+                  - /url: /transfers/11
+              - cell "Jul 13, 06:24 PM" [ref=f15e154]
+              - cell "acct-6" [ref=f15e155]
+              - cell "acct-2" [ref=f15e157]
+              - cell "$89.00 USD" [ref=f15e159]
+              - cell "completed" [ref=f15e160]
+            - row [ref=f15e162]:
+              - cell [ref=f15e163]:
+                - link "#10" [ref=f15e164] [cursor=pointer]:
+                  - /url: /transfers/10
+              - cell "Jul 9, 06:24 PM" [ref=f15e166]
+              - cell "acct-5" [ref=f15e167]
+              - cell "acct-6" [ref=f15e169]
+              - cell "$27.50 USD" [ref=f15e171]
+              - cell "completed" [ref=f15e172]
+            - row [ref=f15e174]:
+              - cell [ref=f15e175]:
+                - link "#9" [ref=f15e176] [cursor=pointer]:
+                  - /url: /transfers/9
+              - cell "Jul 12, 06:24 PM" [ref=f15e178]
+              - cell "acct-2" [ref=f15e179]
+              - cell "acct-5" [ref=f15e181]
+              - cell "$15.00 USD" [ref=f15e183]
+              - cell "completed" [ref=f15e184]
+            - row [ref=f15e186]:
+              - cell [ref=f15e187]:
+                - link "#8" [ref=f15e188] [cursor=pointer]:
+                  - /url: /transfers/8
+              - cell "Jul 11, 06:24 PM" [ref=f15e190]
+              - cell "acct-4" [ref=f15e191]
+              - cell "acct-2" [ref=f15e193]
+              - cell "$42.00 USD" [ref=f15e195]
+              - cell "completed" [ref=f15e196]
+            - row [ref=f15e198]:
+              - cell [ref=f15e199]:
+                - link "#7" [ref=f15e200] [cursor=pointer]:
+                  - /url: /transfers/7
+              - cell "Jul 13, 06:24 PM" [ref=f15e202]
+              - cell "acct-3" [ref=f15e203]
+              - cell "acct-4" [ref=f15e205]
+              - cell "$120.00 USD" [ref=f15e207]
+              - cell "completed" [ref=f15e208]
+            - row [ref=f15e210]:
+              - cell [ref=f15e211]:
+                - link "#6" [ref=f15e212] [cursor=pointer]:
+                  - /url: /transfers/6
+              - cell "Jul 13, 06:24 PM" [ref=f15e214]
+              - cell "acct-2" [ref=f15e215]
+              - cell "acct-3" [ref=f15e217]
+              - cell "$35.00 USD" [ref=f15e219]
+              - cell "completed" [ref=f15e220]
+            - row [ref=f15e222]:
+              - cell [ref=f15e223]:
+                - link "#5" [ref=f15e224] [cursor=pointer]:
+                  - /url: /transfers/5
+              - cell "Jul 14, 06:24 PM" [ref=f15e226]
+              - cell "acct-1" [ref=f15e227]
+              - cell "acct-6" [ref=f15e229]
+              - cell "$3,200.00 USD" [ref=f15e231]
+              - cell "completed" [ref=f15e232]
+            - row [ref=f15e234]:
+              - cell [ref=f15e235]:
+                - link "#4" [ref=f15e236] [cursor=pointer]:
+                  - /url: /transfers/4
+              - cell "Jul 14, 06:24 PM" [ref=f15e238]
+              - cell "acct-1" [ref=f15e239]
+              - cell "acct-5" [ref=f15e241]
+              - cell "$900.00 USD" [ref=f15e243]
+              - cell "completed" [ref=f15e244]
+            - row [ref=f15e246]:
+              - cell [ref=f15e247]:
+                - link "#3" [ref=f15e248] [cursor=pointer]:
+                  - /url: /transfers/3
+              - cell "Jul 14, 06:24 PM" [ref=f15e250]
+              - cell "acct-1" [ref=f15e251]
+              - cell "acct-4" [ref=f15e253]
+              - cell "$1,400.00 USD" [ref=f15e255]
+              - cell "completed" [ref=f15e256]
+            - row [ref=f15e258]:
+              - cell [ref=f15e259]:
+                - link "#2" [ref=f15e260] [cursor=pointer]:
+                  - /url: /transfers/2
+              - cell "Jul 14, 06:24 PM" [ref=f15e262]
+              - cell "acct-1" [ref=f15e263]
+              - cell "acct-3" [ref=f15e265]
+              - cell "$1,800.00 USD" [ref=f15e267]
+              - cell "completed" [ref=f15e268]
+            - row [ref=f15e270]:
+              - cell [ref=f15e271]:
+                - link "#1" [ref=f15e272] [cursor=pointer]:
+                  - /url: /transfers/1
+              - cell "Jul 14, 06:24 PM" [ref=f15e274]
+              - cell "acct-1" [ref=f15e275]
+              - cell "acct-2" [ref=f15e277]
+              - cell "$2,500.00 USD" [ref=f15e279]
+              - cell "completed" [ref=f15e280]
+  - alert [ref=f15e282]

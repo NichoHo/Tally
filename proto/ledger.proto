@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package tally.ledger.v1;
+
+option go_package = "github.com/nickho/tally/proto;ledgerpb";
+
+// LedgerService is the money-movement contract between the gateway and the
+// ledger service. All amounts are integer minor units (for example cents).
+service LedgerService {
+  rpc CreateAccount(CreateAccountRequest) returns (Account);
+  rpc GetAccount(GetAccountRequest) returns (Account);
+  rpc ListAccounts(ListAccountsRequest) returns (ListAccountsResponse);
+  rpc ListAccountEntries(ListAccountEntriesRequest) returns (ListAccountEntriesResponse);
+
+  rpc CreateTransfer(CreateTransferRequest) returns (Transfer);
+  rpc GetTransfer(GetTransferRequest) returns (Transfer);
+  rpc ListTransfers(ListTransfersRequest) returns (ListTransfersResponse);
+
+  // ListFraudFlags returns transfers whose fraud decision is review or block.
+  rpc ListFraudFlags(ListFraudFlagsRequest) returns (ListFraudFlagsResponse);
+
+  // GetStats returns the aggregates the dashboard home page shows.
+  rpc GetStats(GetStatsRequest) returns (Stats);
+}
+
+message Account {
+  int64 id = 1;
+  string name = 2;
+  string currency = 3;
+  int64 balance_minor = 4;
+  bool allow_negative = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message CreateAccountRequest {
+  string name = 1;
+  string currency = 2;
+  bool allow_negative = 3;
+}
+
+message GetAccountRequest {
+  int64 id = 1;
+}
+
+message ListAccountsRequest {}
+
+message ListAccountsResponse {
+  repeated Account accounts = 1;
+}
+
+// LedgerEntry is one side of a double-entry pair. direction is "debit" or
+// "credit"; amount_minor is always positive.
+message LedgerEntry {
+  int64 id = 1;
+  int64 transfer_id = 2;
+  int64 account_id = 3;
+  string direction = 4;
+  int64 amount_minor = 5;
+  string created_at = 6;
+}
+
+message ListAccountEntriesRequest {
+  int64 account_id = 1;
+}
+
+message ListAccountEntriesResponse {
+  repeated LedgerEntry entries = 1;
+}
+
+message Transfer {
+  int64 id = 1;
+  int64 source_account_id = 2;
+  int64 dest_account_id = 3;
+  int64 amount_minor = 4;
+  string currency = 5;
+  string status = 6;
+  string created_at = 7;
+  // The two ledger entries for this transfer (debit source, credit dest).
+  repeated LedgerEntry entries = 8;
+  // Fraud score for this transfer, if the fraud service has scored it yet.
+  FraudScore fraud_score = 9;
+}
+
+// FraudScore is written by the fraud service (phase 2). score is a decimal
+// string like "0.870" (0.000 to 1.000); decision is allow, review, or block.
+message FraudScore {
+  int64 transfer_id = 1;
+  string score = 2;
+  string decision = 3;
+  string model_version = 4;
+  string created_at = 5;
+}
+
+message GetStatsRequest {}
+
+// DailyVolume is one day's transfer activity, for the 7 day chart.
+message DailyVolume {
+  string date = 1; // YYYY-MM-DD
+  int64 volume_minor = 2;
+  int64 count = 3;
+}
+
+message Stats {
+  int64 total_accounts = 1;
+  int64 transfer_count_today = 2;
+  int64 transfer_volume_today_minor = 3;
+  int64 flagged_count = 4;
+  repeated DailyVolume daily_volume = 5; // last 7 days, oldest first
+}
+
+message ListFraudFlagsRequest {}
+
+message ListFraudFlagsResponse {
+  // Transfers with decision review or block, with fraud_score populated.
+  repeated Transfer transfers = 1;
+}
+
+message CreateTransferRequest {
+  int64 source_account_id = 1;
+  int64 dest_account_id = 2;
+  int64 amount_minor = 3;
+  string currency = 4;
+  // idempotency_key dedupes retries; the same key with the same request never
+  // moves money twice.
+  string idempotency_key = 5;
+}
+
+message GetTransferRequest {
+  int64 id = 1;
+}
+
+message ListTransfersRequest {
+  int32 limit = 1;
+  int64 before_id = 2; // keyset pagination: return transfers with id < before_id
+}
+
+message ListTransfersResponse {
+  repeated Transfer transfers = 1;
+}

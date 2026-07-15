@@ -1,0 +1,12 @@
+# web
+web/node_modules/
+web/.next/
+web/next-env.d.ts
+
+# fraud service
+services/fraud/model.joblib
+services/fraud/__pycache__/
+services/fraud/.pytest_cache/
+
+# misc
+*.log

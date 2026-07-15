@@ -1,0 +1,52 @@
+- generic [active] [ref=f11e1]:
+  - banner [ref=f11e2]:
+    - generic [ref=f11e3]: Tally
+    - generic [ref=f11e4]: demo data
+  - generic [ref=f11e5]:
+    - complementary [ref=f11e6]:
+      - navigation [ref=f11e7]:
+        - link "Dashboard" [ref=f11e8] [cursor=pointer]:
+          - /url: /
+        - link "Accounts" [ref=f11e9] [cursor=pointer]:
+          - /url: /accounts
+        - link "Transfers" [ref=f11e10] [cursor=pointer]:
+          - /url: /transfers
+        - link "Fraud" [ref=f11e11] [cursor=pointer]:
+          - /url: /fraud
+    - main [ref=f11e12]:
+      - generic [ref=f11e13]:
+        - generic [ref=f11e14]:
+          - link "Transfers" [ref=f11e15] [cursor=pointer]:
+            - /url: /transfers
+          - generic [ref=f11e16]:
+            - heading "Transfer" [level=1] [ref=f11e17]
+            - generic [ref=f11e18]: "#18"
+            - generic [ref=f11e19]: completed
+        - generic [ref=f11e20]:
+          - generic [ref=f11e21]: Amount
+          - generic [ref=f11e22]: $1,200.00 USD
+          - generic [ref=f11e23]: July 14, 2026 at 06:24 PM
+        - generic [ref=f11e24]:
+          - generic [ref=f11e25]:
+            - generic [ref=f11e26]: Debit (money out)
+            - link "acct-6" [ref=f11e27] [cursor=pointer]:
+              - /url: /accounts/6
+            - generic [ref=f11e29]: "-$1,200.00 USD"
+            - generic [ref=f11e30]:
+              - text: entry
+              - generic [ref=f11e31]: "#35"
+          - generic [ref=f11e32]:
+            - generic [ref=f11e33]: Credit (money in)
+            - link "acct-4" [ref=f11e34] [cursor=pointer]:
+              - /url: /accounts/4
+            - generic [ref=f11e36]: +$1,200.00 USD
+            - generic [ref=f11e37]:
+              - text: entry
+              - generic [ref=f11e38]: "#36"
+        - generic [ref=f11e39]:
+          - generic [ref=f11e40]: Fraud check
+          - generic [ref=f11e41]:
+            - generic [ref=f11e42]: review
+            - generic [ref=f11e43]: score 0.646
+            - generic [ref=f11e44]: iforest-v1
+  - alert [ref=f11e45]
