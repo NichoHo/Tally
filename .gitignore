@@ -10,3 +10,5 @@ services/fraud/.pytest_cache/
 
 # misc
 *.log
+.claude/
+.playwright-cli/

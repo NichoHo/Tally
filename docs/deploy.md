@@ -6,21 +6,26 @@ synchronously over HTTP instead of through Kafka, so nothing needs to stay
 running 24/7. Locally, `make up` still runs the full event-driven pipeline
 (Redpanda + a Kafka consumer); see the main [README](../README.md).
 
+Everything, dashboard included, runs on Render. No second platform to manage.
+
 ## The shape of it
 
 ```
-Browser -> Vercel (Next.js dashboard) -> Render (gateway, public)
-                                              |  gRPC (private)
-                                              v
-                                          Render (ledger, private) -> Neon (Postgres)
-                                              |  HTTP nudge (private)
-                                              v
-                                          Render (fraud scorer) -> Neon (Postgres)
+Browser -> Render (tally-web, Next.js dashboard, public)
+                |  gRPC-free REST, private network
+                v
+           Render (tally-gateway, public)
+                |  gRPC (private)
+                v
+           Render (tally-ledger, private) -> Neon (Postgres)
+                |  HTTP nudge (private)
+                v
+           Render (tally-fraud) -> Neon (Postgres)
 ```
 
 - **Neon** hosts Postgres (free tier is persistent and scales to zero).
-- **Render** runs the three backend processes as free web services.
-- **Vercel** hosts the Next.js dashboard (free).
+- **Render** runs all four processes (web, gateway, ledger, fraud) as free web
+  services, wired together over Render's private network.
 
 ### Why the fraud service changes
 
@@ -40,10 +45,11 @@ picked up by the next transfer.
 
 Everything here is free. The tradeoff is **cold starts**: free Render services
 spin down after about 15 minutes idle, so the first request after a quiet spell
-wakes the chain (gateway, then ledger, then fraud) and can take up to a minute.
-The dashboard shows a transfer immediately; its fraud flag appears a beat later,
-once the fraud service has woken and scored. For a portfolio demo this is fine.
-Refreshing the fraud page after a few seconds shows the flag.
+wakes the chain (web, then gateway, then ledger, then fraud) and can take up to
+a minute or so. The dashboard shows a transfer immediately once it's awake; its
+fraud flag appears a beat later, once the fraud service has woken and scored.
+For a portfolio demo this is fine. Refreshing the fraud page after a few seconds
+shows the flag.
 
 ## Steps
 
@@ -61,40 +67,38 @@ Refreshing the fraud page after a few seconds shows the flag.
      up
    ```
 
-### 2. Render (backend)
+### 2. Render (everything)
 
-1. Push this repo to GitHub (already done: github.com/NichoHo/tally).
+1. Push this repo to GitHub.
 2. In Render: **New > Blueprint**, select the repo. Render reads
-   [`render.yaml`](../render.yaml) and creates the three services and the
+   [`render.yaml`](../render.yaml) and creates all four services
+   (`tally-web`, `tally-gateway`, `tally-ledger`, `tally-fraud`) plus the
    `tally-secrets` env group.
 3. Set `DATABASE_URL` in the **tally-secrets** env group to the Neon string from
-   step 1. All three services share it.
-4. Deploy. The gateway's public URL (`https://tally-gateway-*.onrender.com`) is
-   the API.
+   step 1. The ledger and fraud services share it.
+4. Deploy. The `tally-web` service's public URL
+   (`https://tally-web-*.onrender.com`) is the app; open it in a browser.
 
 Notes:
-- `LEDGER_GRPC_ADDR` and `FRAUD_SCORE_URL` are wired automatically from the other
-  services' private addresses. If Render rejects the `hostport` references for
-  web services when you apply the blueprint, delete those two lines from
-  `render.yaml`, redeploy, then copy each service's internal address (Settings >
-  Networking > Internal Address) into the gateway's `LEDGER_GRPC_ADDR` and
-  `FRAUD_SCORE_URL` env vars by hand. The gateway prepends `http://` to
-  `FRAUD_SCORE_URL` if it has no scheme.
+- `API_URL`, `LEDGER_GRPC_ADDR`, and `FRAUD_SCORE_URL` are wired automatically
+  from the other services' private addresses via `fromService`. If Render
+  rejects these `hostport` references for web services when you apply the
+  blueprint, delete the affected lines from `render.yaml`, redeploy, then copy
+  each target service's internal address (Settings > Networking > Internal
+  Address) into the dependent service's env var by hand:
+  - `tally-web` needs `API_URL` = the gateway's internal address.
+  - `tally-gateway` needs `LEDGER_GRPC_ADDR` = the ledger's internal address,
+    and `FRAUD_SCORE_URL` = the fraud service's internal address.
+  Both the gateway and the dashboard add `http://` automatically if the value
+  has no scheme, so a bare `host:port` is fine either way.
 - The ledger is a gRPC-only service; it has no HTTP health check on purpose,
   Render just confirms the port is open.
+- Only `tally-web` and `tally-gateway` need to be reachable from outside Render;
+  `tally-ledger` and `tally-fraud` are only ever called over the private
+  network, but Render's free tier has no private-only instance type, so they
+  end up with public URLs too. That's fine, nothing sensitive is exposed.
 
-### 3. Vercel (dashboard)
-
-The dashboard is a standard Next.js app in `web/`, so Vercel needs no config file.
-
-1. In Vercel: **New Project**, import the repo, set **Root Directory** to `web`.
-2. Add an environment variable `API_URL` = the Render gateway URL from step 2
-   (e.g. `https://tally-gateway-abc.onrender.com`). The app uses this both for
-   server-side fetches and for the `/api/*` rewrite, so the browser only ever
-   talks to your Vercel origin (no CORS).
-3. Deploy. Open the Vercel URL.
-
-### 4. Seed demo data (optional)
+### 3. Seed demo data (optional)
 
 Point the seed script at the live gateway:
 

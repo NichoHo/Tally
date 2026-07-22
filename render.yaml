@@ -1,6 +1,6 @@
 # Render Blueprint for the completely-free hosted Tally demo.
 # Apply it from the Render dashboard: New > Blueprint, point at this repo.
-# Full walkthrough (Neon, migrations, Vercel frontend): docs/deploy.md.
+# Full walkthrough (Neon, migrations): docs/deploy.md.
 #
 # How the free variant differs from local docker-compose:
 #   - No Redpanda/Kafka and no always-on consumer. The fraud service is a plain
@@ -10,14 +10,13 @@
 #     connection string in the tally-secrets group as DATABASE_URL, with
 #     ?sslmode=require appended.
 #   - Every process is a "web" service, because that is the only instance type
-#     Render offers for free. They reach each other over the private network, so
-#     only the gateway needs to be hit from the browser.
-#   - The Next.js dashboard deploys separately on Vercel (also free); see
-#     docs/deploy.md. It is intentionally not defined here.
+#     Render offers for free. They reach each other over the private network.
+#   - The Next.js dashboard (tally-web) deploys here too, as a fourth service.
+#     Everything, frontend and backend, lives on one platform.
 #
 # Caveat: free services spin down when idle, so the first request after a quiet
-# spell cold-starts the chain (gateway, then ledger, then fraud) and can take up
-# to a minute. That is the price of free; see docs/deploy.md.
+# spell cold-starts the chain (web, then gateway, then ledger, then fraud) and
+# can take up to a minute. That is the price of free; see docs/deploy.md.
 #
 # Before the first deploy, run the database migrations once against Neon
 # (command in docs/deploy.md). Nothing here runs them for you.
@@ -80,5 +79,22 @@ services:
       - key: FRAUD_SCORE_URL
         fromService:
           name: tally-fraud
+          type: web
+          property: hostport
+
+  # Next.js dashboard, the only URL people actually visit. Its rewrite proxy and
+  # server components both call the gateway over the private network, so the
+  # browser only ever talks to this service's own origin (no CORS to configure).
+  - type: web
+    name: tally-web
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./web/Dockerfile
+    dockerContext: ./web
+    envVars:
+      - key: API_URL
+        fromService:
+          name: tally-gateway
           type: web
           property: hostport

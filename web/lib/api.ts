@@ -1,7 +1,9 @@
 // Server-side API client. Server components call these; the browser only ever
 // talks to /api/* (proxied to the gateway by next.config.mjs rewrites).
 
-const API_URL = process.env.API_URL || "http://localhost:8080";
+// Render's fromService hostport has no scheme, so add one if missing.
+const rawApiUrl = process.env.API_URL || "http://localhost:8080";
+const API_URL = rawApiUrl.startsWith("http") ? rawApiUrl : `http://${rawApiUrl}`;
 
 export type Account = {
   id: number;
