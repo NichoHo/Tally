@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	ledgerpb "github.com/nickho/tally/proto"
@@ -13,8 +16,9 @@ import (
 )
 
 type server struct {
-	ledger ledgerpb.LedgerServiceClient
-	log    *slog.Logger
+	ledger        ledgerpb.LedgerServiceClient
+	log           *slog.Logger
+	fraudScoreURL string // free-tier sync scoring; empty means Kafka drives scoring
 }
 
 // ---- JSON helpers ----
@@ -235,7 +239,40 @@ func (s *server) createTransfer(w http.ResponseWriter, r *http.Request) {
 		s.fail(w, err)
 		return
 	}
+	s.triggerScoring()
 	writeJSON(w, http.StatusCreated, viewTransfer(t))
+}
+
+// triggerScoring best-effort asks the fraud service to score any unscored
+// transfers. It is used only in the free-tier deployment, in place of Kafka: the
+// ledger's event publish is disabled there and the gateway nudges scoring after
+// each transfer instead. Fire-and-forget in a goroutine so the response is never
+// blocked; scoring is idempotent and /score-pending catches up anything missed,
+// so a failure here (including a cold-starting fraud service) is harmless.
+func (s *server) triggerScoring() {
+	if s.fraudScoreURL == "" {
+		return
+	}
+	base := s.fraudScoreURL
+	if !strings.HasPrefix(base, "http") {
+		base = "http://" + base // Render's fromService hostport has no scheme
+	}
+	go func() {
+		// Generous timeout: a free-tier fraud service may be cold-starting.
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		defer cancel()
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, base+"/score-pending", nil)
+		if err != nil {
+			s.log.Error("build fraud score request", "error", err)
+			return
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			s.log.Warn("fraud scoring nudge failed", "error", err)
+			return
+		}
+		_ = resp.Body.Close()
+	}()
 }
 
 func (s *server) getTransfer(w http.ResponseWriter, r *http.Request) {

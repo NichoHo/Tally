@@ -3,3 +3,6 @@ psycopg[binary]==3.1.19
 scikit-learn==1.5.0
 joblib==1.4.2
 numpy==1.26.4
+# Free-tier HTTP scoring endpoint (web.py); unused by the Kafka consumer.
+flask==3.0.3
+gunicorn==22.0.0

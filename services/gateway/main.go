@@ -22,6 +22,10 @@ func main() {
 
 	ledgerAddr := envDefault("LEDGER_GRPC_ADDR", "ledger:9090")
 	httpAddr := envDefault("GATEWAY_HTTP_ADDR", ":8080")
+	// Render (and similar hosts) inject the port to listen on via PORT.
+	if p := os.Getenv("PORT"); p != "" {
+		httpAddr = ":" + p
+	}
 
 	conn, err := grpc.NewClient(ledgerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -33,6 +37,11 @@ func main() {
 	srv := &server{
 		ledger: ledgerpb.NewLedgerServiceClient(conn),
 		log:    log,
+		// Free-tier deployment only: when set, the gateway nudges the fraud
+		// service to score after each transfer, replacing the Kafka pipeline.
+		// Empty (the default, e.g. local docker-compose) means the ledger's
+		// Kafka publish drives scoring instead.
+		fraudScoreURL: os.Getenv("FRAUD_SCORE_URL"),
 	}
 
 	r := chi.NewRouter()

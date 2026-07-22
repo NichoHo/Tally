@@ -78,6 +78,14 @@ make seed    # recommended: insert demo accounts and transfers
 Then open `http://localhost:3000` for the dashboard. The API is at
 `http://localhost:8080`. Stop with `make down`.
 
+### Deploying it for free
+
+`make up` runs the full event-driven pipeline (Redpanda + a Kafka consumer). For
+a completely free hosted demo (Neon + Render + Vercel), the fraud service is
+scored synchronously over HTTP instead, so nothing has to stay running 24/7. The
+same code drives both: setting `FRAUD_SCORE_URL` on the gateway switches it on,
+leaving it unset keeps the local Kafka path. See [docs/deploy.md](docs/deploy.md).
+
 ## Screenshots
 
 | Transfer detail (double entry) | Fraud flags |

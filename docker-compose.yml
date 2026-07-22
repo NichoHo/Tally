@@ -49,8 +49,7 @@ services:
   ledger:
     build:
       context: .
-      args:
-        SERVICE_PATH: services/ledger/cmd/ledger
+    command: ["/ledger"]
     environment:
       DATABASE_URL: postgres://tally:tally@postgres:5432/tally?sslmode=disable
       LEDGER_GRPC_ADDR: ":9090"
@@ -80,8 +79,7 @@ services:
   gateway:
     build:
       context: .
-      args:
-        SERVICE_PATH: services/gateway
+    command: ["/gateway"]
     environment:
       LEDGER_GRPC_ADDR: "ledger:9090"
       GATEWAY_HTTP_ADDR: ":8080"

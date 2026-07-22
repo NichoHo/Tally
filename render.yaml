@@ -1,0 +1,84 @@
+# Render Blueprint for the completely-free hosted Tally demo.
+# Apply it from the Render dashboard: New > Blueprint, point at this repo.
+# Full walkthrough (Neon, migrations, Vercel frontend): docs/deploy.md.
+#
+# How the free variant differs from local docker-compose:
+#   - No Redpanda/Kafka and no always-on consumer. The fraud service is a plain
+#     HTTP endpoint (services/fraud/web.py) that the gateway nudges after each
+#     transfer via FRAUD_SCORE_URL. Scoring is idempotent and self-healing.
+#   - Postgres is external: Neon's free tier (persistent, scales to zero). Put its
+#     connection string in the tally-secrets group as DATABASE_URL, with
+#     ?sslmode=require appended.
+#   - Every process is a "web" service, because that is the only instance type
+#     Render offers for free. They reach each other over the private network, so
+#     only the gateway needs to be hit from the browser.
+#   - The Next.js dashboard deploys separately on Vercel (also free); see
+#     docs/deploy.md. It is intentionally not defined here.
+#
+# Caveat: free services spin down when idle, so the first request after a quiet
+# spell cold-starts the chain (gateway, then ledger, then fraud) and can take up
+# to a minute. That is the price of free; see docs/deploy.md.
+#
+# Before the first deploy, run the database migrations once against Neon
+# (command in docs/deploy.md). Nothing here runs them for you.
+
+envVarGroups:
+  - name: tally-secrets
+    envVars:
+      # Paste the Neon pooled connection string here in the Render dashboard,
+      # e.g. postgres://user:pass@ep-xxx.neon.tech/tally?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+
+services:
+  # Core ledger (gRPC). Reached only by the gateway over the private network.
+  - type: web
+    name: tally-ledger
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /ledger
+    # No KAFKA_BROKERS: the ledger detects its absence and disables publishing.
+    envVars:
+      - fromGroup: tally-secrets
+
+  # Fraud scoring over HTTP. The image trains the IsolationForest at build time.
+  - type: web
+    name: tally-fraud
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./services/fraud/Dockerfile
+    dockerContext: ./services/fraud
+    dockerCommand: gunicorn --bind 0.0.0.0:$PORT --timeout 120 web:app
+    healthCheckPath: /healthz
+    envVars:
+      - fromGroup: tally-secrets
+
+  # REST gateway, the only public entry point. Talks to the ledger over gRPC and
+  # nudges the fraud service after each transfer.
+  - type: web
+    name: tally-gateway
+    runtime: docker
+    plan: free
+    region: oregon
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: /gateway
+    healthCheckPath: /healthz
+    envVars:
+      # If Render rejects these hostport references for web services, delete them
+      # and instead paste each target's internal address (Settings > Networking)
+      # into LEDGER_GRPC_ADDR and FRAUD_SCORE_URL by hand. See docs/deploy.md.
+      - key: LEDGER_GRPC_ADDR
+        fromService:
+          name: tally-ledger
+          type: web
+          property: hostport
+      - key: FRAUD_SCORE_URL
+        fromService:
+          name: tally-fraud
+          type: web
+          property: hostport

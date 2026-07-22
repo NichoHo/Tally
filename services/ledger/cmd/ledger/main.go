@@ -27,6 +27,10 @@ func main() {
 		os.Exit(1)
 	}
 	addr := envDefault("LEDGER_GRPC_ADDR", ":9090")
+	// Render (and similar hosts) inject the port to listen on via PORT.
+	if p := os.Getenv("PORT"); p != "" {
+		addr = ":" + p
+	}
 
 	pool, err := connectWithRetry(context.Background(), dsn, log)
 	if err != nil {
