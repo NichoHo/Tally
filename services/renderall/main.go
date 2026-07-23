@@ -20,7 +20,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	ledgerpb "github.com/nickho/tally/proto"
-	"github.com/nickho/tally/services/gateway/internal/app"
+	"github.com/nickho/tally/services/internal/app"
 	"github.com/nickho/tally/services/ledger/internal/grpcserver"
 	"github.com/nickho/tally/services/ledger/internal/store"
 	"google.golang.org/grpc"

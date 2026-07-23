@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nickho/tally/services/gateway/internal/app"
 	ledgerpb "github.com/nickho/tally/proto"
+	"github.com/nickho/tally/services/internal/app"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
