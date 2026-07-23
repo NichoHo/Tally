@@ -80,23 +80,26 @@ shows the flag.
    (`https://tally-web-*.onrender.com`) is the app; open it in a browser.
 
 Notes:
-- `API_URL`, `LEDGER_GRPC_ADDR`, and `FRAUD_SCORE_URL` are wired automatically
-  from the other services' private addresses via `fromService`. If Render
-  rejects these `hostport` references for web services when you apply the
-  blueprint, delete the affected lines from `render.yaml`, redeploy, then copy
-  each target service's internal address (Settings > Networking > Internal
-  Address) into the dependent service's env var by hand:
-  - `tally-web` needs `API_URL` = the gateway's internal address.
-  - `tally-gateway` needs `LEDGER_GRPC_ADDR` = the ledger's internal address,
-    and `FRAUD_SCORE_URL` = the fraud service's internal address.
-  Both the gateway and the dashboard add `http://` automatically if the value
-  has no scheme, so a bare `host:port` is fine either way.
+- Render's free plan does not resolve private short hostnames
+  (`tally-ledger:PORT`) for `web`-type services, so `LEDGER_GRPC_ADDR` in
+  `render.yaml` points at the ledger's public `onrender.com` hostname on
+  `:443` instead, and the gateway dials it with TLS (Render terminates TLS at
+  its edge and forwards plain HTTP/2 to the container, so gRPC still works).
+  `API_URL` on `tally-web` and `FRAUD_SCORE_URL` on the gateway use the same
+  public-hostname approach; set them by hand in the dashboard to each
+  service's public URL if they are not already wired.
 - The ledger is a gRPC-only service; it has no HTTP health check on purpose,
-  Render just confirms the port is open.
+  Render just confirms the port is open (it may log a "no open HTTP ports"
+  port-scan timeout even while healthy; ignore it).
 - Only `tally-web` and `tally-gateway` need to be reachable from outside Render;
-  `tally-ledger` and `tally-fraud` are only ever called over the private
-  network, but Render's free tier has no private-only instance type, so they
-  end up with public URLs too. That's fine, nothing sensitive is exposed.
+  `tally-ledger` and `tally-fraud` are only ever called from other services,
+  but Render's free tier has no private-only instance type, so they end up with
+  public URLs too. That's fine, nothing sensitive is exposed.
+- Free services spin down after ~15 min idle, and Render only auto-wakes a
+  service on an inbound request to its *public* URL, a private/internal call
+  from another service cannot wake a sleeping one. If `tally-ledger` has been
+  idle, visit `https://tally-ledger.onrender.com` directly once to wake it
+  before retrying the dashboard.
 
 ### 3. Seed demo data (optional)
 

@@ -61,12 +61,12 @@ services:
     dockerCommand: /gateway
     healthCheckPath: /healthz
     envVars:
-      # gRPC works perfectly with the raw hostport!
+      # Render's free plan does not resolve private short hostnames
+      # (tally-ledger:PORT) for web services, so this dials the ledger's
+      # public onrender.com hostname over TLS instead. Update the host below
+      # if your ledger service ends up on a different subdomain.
       - key: LEDGER_GRPC_ADDR
-        fromService:
-          name: tally-ledger
-          type: web
-          property: hostport
+        value: tally-ledger.onrender.com:443
 
   - type: web
     name: tally-web

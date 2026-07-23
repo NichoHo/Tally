@@ -5,15 +5,18 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	ledgerpb "github.com/nickho/tally/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -27,7 +30,17 @@ func main() {
 		httpAddr = ":" + p
 	}
 
-	conn, err := grpc.NewClient(ledgerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Render's free plan does not resolve private short hostnames for web
+	// services, so the free deploy points LEDGER_GRPC_ADDR at the ledger's
+	// public onrender.com hostname instead. That traffic is TLS-terminated at
+	// Render's edge, so it needs a real TLS dial; local/compose/k8s targets
+	// (bare host:port, no dot) stay plaintext.
+	transportCreds := insecure.NewCredentials()
+	if strings.Contains(ledgerAddr, ".") {
+		transportCreds = credentials.NewTLS(&tls.Config{})
+	}
+
+	conn, err := grpc.NewClient(ledgerAddr, grpc.WithTransportCredentials(transportCreds))
 	if err != nil {
 		log.Error("dial ledger", "addr", ledgerAddr, "error", err)
 		os.Exit(1)
