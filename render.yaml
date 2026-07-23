@@ -68,19 +68,21 @@ services:
     dockerCommand: /gateway
     healthCheckPath: /healthz
     envVars:
-      # If Render rejects these hostport references for web services, delete them
-      # and instead paste each target's internal address (Settings > Networking)
-      # into LEDGER_GRPC_ADDR and FRAUD_SCORE_URL by hand. See docs/deploy.md.
+      # GRPC does not need the http:// prefix
       - key: LEDGER_GRPC_ADDR
         fromService:
           name: tally-ledger
           type: web
           property: hostport
-      - key: FRAUD_SCORE_URL
+      
+      # HTTP needs the prefix, so we pull the hostport and interpolate it
+      - key: FRAUD_HOSTPORT
         fromService:
           name: tally-fraud
           type: web
           property: hostport
+      - key: FRAUD_SCORE_URL
+        value: http://${FRAUD_HOSTPORT}
 
   # Next.js dashboard, the only URL people actually visit. Its rewrite proxy and
   # server components both call the gateway over the private network, so the
@@ -93,8 +95,11 @@ services:
     dockerfilePath: ./web/Dockerfile
     dockerContext: ./web
     envVars:
-      - key: API_URL
+      # Pull the hostport dynamically, then interpolate to add the http:// prefix
+      - key: GATEWAY_HOSTPORT
         fromService:
           name: tally-gateway
           type: web
           property: hostport
+      - key: API_URL
+        value: http://${GATEWAY_HOSTPORT}
