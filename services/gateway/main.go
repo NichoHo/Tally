@@ -4,7 +4,6 @@
 package main
 
 import (
-	"context"
 	"crypto/tls"
 	"log/slog"
 	"net/http"
@@ -12,8 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/nickho/tally/services/gateway/internal/app"
 	ledgerpb "github.com/nickho/tally/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -31,9 +29,10 @@ func main() {
 	}
 
 	// Render's free plan does not resolve private short hostnames for web
-	// services, so the free deploy points LEDGER_GRPC_ADDR at the ledger's
-	// public onrender.com hostname instead. That traffic is TLS-terminated at
-	// Render's edge, so it needs a real TLS dial; local/compose/k8s targets
+	// services, so a standalone free deploy would need LEDGER_GRPC_ADDR
+	// pointed at the ledger's public onrender.com hostname, which needs TLS.
+	// (The actual free Render deploy avoids this by running the ledger
+	// in-process instead; see services/renderall.) Local/compose/k8s targets
 	// (bare host:port, no dot) stay plaintext.
 	transportCreds := insecure.NewCredentials()
 	if strings.Contains(ledgerAddr, ".") {
@@ -47,40 +46,19 @@ func main() {
 	}
 	defer conn.Close()
 
-	srv := &server{
-		ledger: ledgerpb.NewLedgerServiceClient(conn),
-		log:    log,
+	handler := app.New(
+		ledgerpb.NewLedgerServiceClient(conn),
+		log,
 		// Free-tier deployment only: when set, the gateway nudges the fraud
 		// service to score after each transfer, replacing the Kafka pipeline.
 		// Empty (the default, e.g. local docker-compose) means the ledger's
 		// Kafka publish drives scoring instead.
-		fraudScoreURL: os.Getenv("FRAUD_SCORE_URL"),
-	}
-
-	r := chi.NewRouter()
-	r.Use(middleware.Recoverer)
-	r.Use(middleware.RealIP)
-
-	r.Get("/healthz", srv.healthz)
-	r.Get("/readyz", srv.readyz)
-
-	r.Route("/v1", func(r chi.Router) {
-		r.Post("/accounts", srv.createAccount)
-		r.Get("/accounts", srv.listAccounts)
-		r.Get("/accounts/{id}", srv.getAccount)
-		r.Get("/accounts/{id}/entries", srv.listAccountEntries)
-
-		r.Post("/transfers", srv.createTransfer)
-		r.Get("/transfers", srv.listTransfers)
-		r.Get("/transfers/{id}", srv.getTransfer)
-
-		r.Get("/fraud/flags", srv.listFraudFlags)
-		r.Get("/stats", srv.getStats)
-	})
+		os.Getenv("FRAUD_SCORE_URL"),
+	)
 
 	httpServer := &http.Server{
 		Addr:              httpAddr,
-		Handler:           r,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Info("gateway listening", "addr", httpAddr, "ledger", ledgerAddr)
@@ -95,19 +73,4 @@ func envDefault(key, fallback string) string {
 		return v
 	}
 	return fallback
-}
-
-// readyz confirms the ledger service is reachable.
-func (s *server) readyz(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-	defer cancel()
-	if _, err := s.ledger.ListAccounts(ctx, &ledgerpb.ListAccountsRequest{}); err != nil {
-		writeError(w, http.StatusServiceUnavailable, "ledger not ready")
-		return
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
-}
-
-func (s *server) healthz(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

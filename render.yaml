@@ -9,14 +9,20 @@
 #   - Postgres is external: Neon's free tier (persistent, scales to zero). Put its
 #     connection string in the tally-secrets group as DATABASE_URL, with
 #     ?sslmode=require appended.
+#   - The ledger and gateway run combined, in one process (services/renderall),
+#     instead of as two services talking gRPC. Render's free plan does not
+#     resolve private short hostnames between web services, and gRPC over its
+#     public onrender.com edge needs a custom domain, so two separate free
+#     services can't reach each other over gRPC at all. See services/renderall
+#     and docs/deploy.md for the full explanation.
 #   - Every process is a "web" service, because that is the only instance type
-#     Render offers for free. They reach each other over the private network.
-#   - The Next.js dashboard (tally-web) deploys here too, as a fourth service.
+#     Render offers for free.
+#   - The Next.js dashboard (tally-web) deploys here too, as a third service.
 #     Everything, frontend and backend, lives on one platform.
 #
 # Caveat: free services spin down when idle, so the first request after a quiet
-# spell cold-starts the chain (web, then gateway, then ledger, then fraud) and
-# can take up to a minute. That is the price of free; see docs/deploy.md.
+# spell cold-starts the chain (web, then gateway+ledger, then fraud) and can
+# take up to a minute. That is the price of free; see docs/deploy.md.
 #
 # Before the first deploy, run the database migrations once against Neon
 # (command in docs/deploy.md). Nothing here runs them for you.
@@ -28,17 +34,6 @@ envVarGroups:
         sync: false
 
 services:
-  - type: web
-    name: tally-ledger
-    runtime: docker
-    plan: free
-    region: oregon
-    dockerfilePath: ./Dockerfile
-    dockerContext: .
-    dockerCommand: /ledger
-    envVars:
-      - fromGroup: tally-secrets
-
   - type: web
     name: tally-fraud
     runtime: docker
@@ -58,15 +53,10 @@ services:
     region: oregon
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    dockerCommand: /gateway
+    dockerCommand: /renderall
     healthCheckPath: /healthz
     envVars:
-      # Render's free plan does not resolve private short hostnames
-      # (tally-ledger:PORT) for web services, so this dials the ledger's
-      # public onrender.com hostname over TLS instead. Update the host below
-      # if your ledger service ends up on a different subdomain.
-      - key: LEDGER_GRPC_ADDR
-        value: tally-ledger.onrender.com:443
+      - fromGroup: tally-secrets
 
   - type: web
     name: tally-web

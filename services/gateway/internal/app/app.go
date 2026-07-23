@@ -1,4 +1,12 @@
-package main
+// Package app builds the gateway's REST router: it validates nothing beyond
+// shape, forwards to the ledger service over gRPC, and translates gRPC status
+// codes into HTTP status codes. All money fields are integer minor units.
+//
+// Extracted from cmd main so it can be reused by both the standalone gateway
+// binary and the combined render-all binary (see services/renderall), which
+// embeds the ledger in the same process instead of dialing it over the
+// network.
+package app
 
 import (
 	"context"
@@ -10,6 +18,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	ledgerpb "github.com/nickho/tally/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -19,6 +28,49 @@ type server struct {
 	ledger        ledgerpb.LedgerServiceClient
 	log           *slog.Logger
 	fraudScoreURL string // free-tier sync scoring; empty means Kafka drives scoring
+}
+
+// New builds the gateway's HTTP handler.
+func New(ledger ledgerpb.LedgerServiceClient, log *slog.Logger, fraudScoreURL string) http.Handler {
+	s := &server{ledger: ledger, log: log, fraudScoreURL: fraudScoreURL}
+
+	r := chi.NewRouter()
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.RealIP)
+
+	r.Get("/healthz", s.healthz)
+	r.Get("/readyz", s.readyz)
+
+	r.Route("/v1", func(r chi.Router) {
+		r.Post("/accounts", s.createAccount)
+		r.Get("/accounts", s.listAccounts)
+		r.Get("/accounts/{id}", s.getAccount)
+		r.Get("/accounts/{id}/entries", s.listAccountEntries)
+
+		r.Post("/transfers", s.createTransfer)
+		r.Get("/transfers", s.listTransfers)
+		r.Get("/transfers/{id}", s.getTransfer)
+
+		r.Get("/fraud/flags", s.listFraudFlags)
+		r.Get("/stats", s.getStats)
+	})
+
+	return r
+}
+
+// readyz confirms the ledger service is reachable.
+func (s *server) readyz(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+	if _, err := s.ledger.ListAccounts(ctx, &ledgerpb.ListAccountsRequest{}); err != nil {
+		writeError(w, http.StatusServiceUnavailable, "ledger not ready")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ready"})
+}
+
+func (s *server) healthz(w http.ResponseWriter, _ *http.Request) {
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 // ---- JSON helpers ----
