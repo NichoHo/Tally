@@ -1,4 +1,4 @@
-// IDs render in monospace inside a subtle gray pill (CLAUDE.md section 12).
+// IDs render in monospace inside a subtle gray pill.
 export function IdTag({ id, prefix }: { id: number | string; prefix?: string }) {
   return (
     <span className="inline-block rounded bg-page px-1.5 py-0.5 font-mono text-xs text-muted border border-line">

@@ -1,4 +1,4 @@
-// The single place minor units become display strings (CLAUDE.md section 17).
+// The single place minor units become display strings.
 // 1010 minor units of USD renders as $10.10 USD.
 
 const SYMBOLS: Record<string, string> = { USD: "$", EUR: "€", GBP: "£", JPY: "¥" };

@@ -29,6 +29,9 @@ What works today:
   twice cannot create a second score (unique index + upsert).
 - Transfer detail includes the fraud score; `/v1/fraud/flags` lists transfers
   whose decision is `review` or `block`.
+- A live reconcile check (`/v1/reconcile` and the Reconcile page) recomputes
+  every balance from ledger entries, compares it to the cached balance, and
+  confirms the system sums to zero.
 - A Next.js dashboard at `http://localhost:3000`: stat cards, a 7 day volume
   chart, account and transfer browsing with running balances, a transfer form
   that generates idempotency keys client-side, and a fraud flags page. Transfer
@@ -65,6 +68,72 @@ ledger service over gRPC, and maps gRPC status codes to HTTP codes. All the
 money rules live in the ledger service (`services/ledger/internal/domain` and
 `.../store`). Events are published only after the database transaction commits,
 so a transfer is never announced unless it actually happened.
+
+## Design decisions
+
+Short notes on why the project is built the way it is. These are the questions
+an interviewer tends to ask, so the reasoning lives here next to the code.
+
+**Money is stored as integer minor units, never a float.** `10.10` USD is stored
+as the integer `1010`. Floating point cannot represent most decimal fractions
+exactly, so repeated float arithmetic drifts (`0.1 + 0.2` is not `0.3`). In a
+ledger that drift is money quietly appearing or vanishing. Integers are exact,
+so the math is exact. Amounts are `int64` in Go and `BIGINT` in Postgres.
+
+**Balances come from double-entry ledger entries, not a single balance column.**
+Every transfer writes two immutable rows: a debit on the source and a credit on
+the destination, for the same amount. An account's balance is the sum of its
+credits minus its debits. A plain "current balance" column with no history can
+be wrong with no way to prove it; with a ledger the balance is always provable
+from the entries, and the entries are never edited or deleted. The cached
+`balance_minor` column exists only as a performance shortcut, and the reconcile
+check (below) proves it never disagrees with the entries.
+
+**The whole transfer runs in one database transaction.** The transfer row, both
+ledger entries, both balance updates, and the idempotency record either all
+commit together or none of them do. There is no window where the books are half
+updated.
+
+**Accounts are locked in a consistent order (by id ascending).** Two transfers
+touching the same pair of accounts in opposite directions could otherwise each
+hold one lock and wait on the other forever (a deadlock). Always taking the
+lower account id first makes that impossible.
+
+**Transfers are idempotent by key.** The client sends an `Idempotency-Key`. The
+same key with the same request returns the original transfer without moving
+money again; the same key with a different request is a client bug and returns
+`409`. This is what makes a retry after a network timeout safe.
+
+**Events publish after the commit, and the next step is an outbox.** The ledger
+publishes `transfers.completed` only after the transaction commits, so it never
+announces a transfer that did not happen. Today that publish is fire and forget:
+if the process crashed in the gap between commit and publish, the event would be
+lost (consumers are idempotent, so a missed event is the only real risk, never a
+double count). The fix is the transactional outbox pattern: write the event to
+an `outbox` table inside the same transaction, then let a small worker publish
+unsent rows and mark them sent. The event can then neither be lost nor sent for a
+transfer that did not commit. See the `ponytail:` note in
+`services/ledger/internal/events/publisher.go`.
+
+**Corrections are appended, never edited.** A ledger is immutable history. To
+reverse a wrong transfer you do not edit or delete its rows; you append a new,
+opposite pair of entries that reference the original. History is preserved and
+still reconciles. The reversal endpoint is a small planned addition; the schema
+is already append-only, which is the part that matters.
+
+**Reconciliation is exposed live, not just tested.** `GET /v1/reconcile` and the
+Reconcile dashboard page recompute every account's balance from its ledger
+entries, compare it to the cached balance, and confirm the system sums to zero.
+Real ledger teams run exactly this kind of job and alert on any mismatch.
+
+**What I would do differently at scale.** The cached `balance_minor` column is
+the obvious bottleneck: every transfer updates two account rows, so a hot account
+serialises all of its transfers. At real volume I would move to time-bucketed
+balance snapshots (periodically materialise a balance as of a point in time, then
+sum only the entries since), which is roughly the direction Monzo took.
+Reconciliation would become a single SQL pass behind its own gRPC RPC rather than
+the current per-account fetch, and the outbox above would replace fire-and-forget
+publishing.
 
 ## Run it
 
@@ -139,6 +208,7 @@ Base path `/v1`. All money fields are integer minor units.
 | GET | `/v1/transfers` | list transfers (`?limit=&before_id=`) |
 | GET | `/v1/transfers/{id}` | transfer detail with its two ledger entries and fraud score if scored |
 | GET | `/v1/fraud/flags` | transfers with fraud decision `review` or `block` |
+| GET | `/v1/reconcile` | recompute balances from entries, check cache and system sum to zero |
 | GET | `/healthz`, `/readyz` | liveness / readiness |
 
 Status codes: `201` create, `200` read, `400` bad input, `404` not found,

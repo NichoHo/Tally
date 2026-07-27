@@ -15,7 +15,7 @@ Browser -> Render (tally-web, Next.js dashboard, public)
                 |  REST, public URL
                 v
            Render (tally-gateway, public)
-             gateway + ledger, one process (services/renderall)
+             gateway + ledger, one process (services/ledger/cmd/renderall)
                 |  in-process, loopback only
                 |  HTTP nudge (public URL)
                 v
@@ -25,7 +25,7 @@ Browser -> Render (tally-web, Next.js dashboard, public)
 - **Neon** hosts Postgres (free tier is persistent and scales to zero).
 - **Render** runs three processes (web, gateway+ledger combined, fraud) as
   free web services.
-- The gateway and ledger run **in one process** here (`services/renderall`),
+- The gateway and ledger run **in one process** here (`services/ledger/cmd/renderall`),
   not as two services talking gRPC over the network. Render's free plan
   doesn't resolve private short hostnames between web services, and gRPC over
   its public `onrender.com` edge doesn't work without a custom domain, so two
@@ -92,7 +92,7 @@ a page still 502s a few seconds after you load it, the service it depends on
    (`https://tally-web-*.onrender.com`) is the app; open it in a browser.
 
 Notes:
-- `tally-gateway` runs `services/renderall`, the ledger and gateway combined
+- `tally-gateway` runs `services/ledger/cmd/renderall`, the ledger and gateway combined
   in one process (see the architecture note above). `API_URL` on `tally-web`
   should point at `tally-gateway`'s public URL; `FRAUD_SCORE_URL` on
   `tally-gateway` should point at `tally-fraud`'s public URL. Both just need

@@ -1,6 +1,6 @@
 // Package events publishes ledger events to Kafka. Publishing always happens
 // after the database transaction has committed, so we never announce a transfer
-// that did not actually happen (section 6.2 step 10 of CLAUDE.md).
+// that did not actually happen.
 package events
 
 import (
@@ -16,8 +16,8 @@ import (
 
 const TopicTransfersCompleted = "transfers.completed"
 
-// transferCompleted is the wire format of a transfers.completed event
-// (section 9 of CLAUDE.md). Keyed by transfer id.
+// transferCompleted is the wire format of a transfers.completed event.
+// Keyed by transfer id.
 type transferCompleted struct {
 	TransferID      int64  `json:"transfer_id"`
 	SourceAccountID int64  `json:"source_account_id"`

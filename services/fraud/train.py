@@ -3,7 +3,7 @@
 Run: python train.py
 Writes model.joblib next to this file. The data is synthetic and the model is
 illustrative, not production fraud detection. Kept as a script so the whole
-pipeline is reproducible (section 10 of CLAUDE.md).
+pipeline is reproducible.
 """
 
 from __future__ import annotations

@@ -8,6 +8,7 @@ const LINKS = [
   { href: "/accounts", label: "Accounts" },
   { href: "/transfers", label: "Transfers" },
   { href: "/fraud", label: "Fraud" },
+  { href: "/reconcile", label: "Reconcile" },
 ];
 
 export function Nav({ horizontal = false }: { horizontal?: boolean }) {

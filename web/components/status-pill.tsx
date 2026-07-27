@@ -1,5 +1,5 @@
 // Status pills: colored tint background with a darker text shade of the same
-// color, never plain black (CLAUDE.md section 12).
+// color, never plain black.
 
 const STYLES: Record<string, string> = {
   completed: "bg-ok-tint text-ok-dark",

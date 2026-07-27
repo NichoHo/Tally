@@ -15,7 +15,7 @@ MODEL_PATH = Path(__file__).parent / "model.joblib"
 MODEL_VERSION_RULES = "rules-v1"
 MODEL_VERSION_IFOREST = "iforest-v1"
 
-# Thresholds are configurable via env (section 10 of CLAUDE.md).
+# Thresholds are configurable via env.
 REVIEW_THRESHOLD = float(os.getenv("FRAUD_REVIEW_THRESHOLD", "0.5"))
 BLOCK_THRESHOLD = float(os.getenv("FRAUD_BLOCK_THRESHOLD", "0.8"))
 
@@ -26,7 +26,7 @@ HIGH_VELOCITY_COUNT = int(os.getenv("FRAUD_HIGH_VELOCITY_COUNT", "5"))
 
 @dataclass(frozen=True)
 class Features:
-    """The signals we score a transfer on (section 10 of CLAUDE.md)."""
+    """The signals we score a transfer on."""
 
     amount_minor: int
     recent_count: int  # source's transfers in the last 10 minutes

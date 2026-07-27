@@ -3,7 +3,7 @@ publish fraud.scored.
 
 Consumption is idempotent: fraud_scores has a unique index on transfer_id and we
 insert with ON CONFLICT DO NOTHING, so replaying the same event cannot create a
-second row (section 9 of CLAUDE.md).
+second row.
 """
 
 from __future__ import annotations

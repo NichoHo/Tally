@@ -13,8 +13,7 @@ import (
 // CreateTransfer moves money from source to destination. Everything happens in
 // one database transaction: idempotency claim, account locks, the transfer row,
 // the two ledger entries, the balance updates, and the idempotency result. If
-// any step fails the whole thing rolls back, so money is never left half moved
-// (section 6.2 of CLAUDE.md).
+// any step fails the whole thing rolls back, so money is never left half moved.
 func (s *Store) CreateTransfer(ctx context.Context, p domain.TransferParams, idemKey string) (*domain.Transfer, error) {
 	if idemKey == "" {
 		return nil, domain.ErrMissingIdempotencyKey

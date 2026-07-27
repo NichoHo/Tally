@@ -32,7 +32,7 @@ func main() {
 	// services, so a standalone free deploy would need LEDGER_GRPC_ADDR
 	// pointed at the ledger's public onrender.com hostname, which needs TLS.
 	// (The actual free Render deploy avoids this by running the ledger
-	// in-process instead; see services/renderall.) Local/compose/k8s targets
+	// in-process instead; see services/ledger/cmd/renderall.) Local/compose/k8s targets
 	// (bare host:port, no dot) stay plaintext.
 	transportCreds := insecure.NewCredentials()
 	if strings.Contains(ledgerAddr, ".") {

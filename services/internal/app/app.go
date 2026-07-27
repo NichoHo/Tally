@@ -3,7 +3,7 @@
 // codes into HTTP status codes. All money fields are integer minor units.
 //
 // Extracted from cmd main so it can be reused by both the standalone gateway
-// binary and the combined render-all binary (see services/renderall), which
+// binary and the combined render-all binary (see services/ledger/cmd/renderall), which
 // embeds the ledger in the same process instead of dialing it over the
 // network.
 package app
@@ -53,6 +53,7 @@ func New(ledger ledgerpb.LedgerServiceClient, log *slog.Logger, fraudScoreURL st
 
 		r.Get("/fraud/flags", s.listFraudFlags)
 		r.Get("/stats", s.getStats)
+		r.Get("/reconcile", s.getReconcile)
 	})
 
 	return r

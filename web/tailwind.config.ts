@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// Design tokens from CLAUDE.md section 12: calm, restrained, one accent.
+// Design tokens: calm, restrained, one accent.
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {

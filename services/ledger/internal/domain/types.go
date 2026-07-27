@@ -1,6 +1,5 @@
 // Package domain holds the money-movement rules for the ledger. It is pure Go:
-// no database, no transport. The rules here are what section 6 of CLAUDE.md
-// calls the heart of the project.
+// no database, no transport. These rules are the heart of the project.
 package domain
 
 import "time"

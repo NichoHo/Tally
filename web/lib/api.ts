@@ -52,6 +52,21 @@ export type Stats = {
   daily_volume: { date: string; volume_minor: number; count: number }[];
 };
 
+export type Reconcile = {
+  ok: boolean;
+  account_count: number;
+  mismatch_count: number;
+  system_sum_minor: number;
+  accounts: {
+    account_id: number;
+    name: string;
+    currency: string;
+    cached_minor: number;
+    computed_minor: number;
+    ok: boolean;
+  }[];
+};
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
   if (!res.ok) {
@@ -74,4 +89,5 @@ export const api = {
   },
   transfer: (id: string) => get<Transfer>(`/v1/transfers/${id}`),
   fraudFlags: () => get<Transfer[]>("/v1/fraud/flags"),
+  reconcile: () => get<Reconcile>("/v1/reconcile"),
 };
