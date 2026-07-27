@@ -6,12 +6,12 @@ synchronously over HTTP instead of through Kafka, so nothing needs to stay
 running 24/7. Locally, `make up` still runs the full event-driven pipeline
 (Redpanda + a Kafka consumer); see the main [README](../README.md).
 
-Everything, dashboard included, runs on Render. No second platform to manage.
+The dashboard runs on Vercel, the backend on Render. Both free.
 
 ## The shape of it
 
 ```
-Browser -> Render (tally-web, Next.js dashboard, public)
+Browser -> Vercel (Next.js dashboard, always warm)
                 |  REST, public URL
                 v
            Render (tally-gateway, public)
@@ -23,8 +23,24 @@ Browser -> Render (tally-web, Next.js dashboard, public)
 ```
 
 - **Neon** hosts Postgres (free tier is persistent and scales to zero).
-- **Render** runs three processes (web, gateway+ledger combined, fraud) as
-  free web services.
+- **Vercel** hosts the Next.js dashboard. Its free tier does not spin down, so
+  the page always paints immediately.
+- **Render** runs two processes (gateway+ledger combined, fraud) as free web
+  services.
+
+### Why the dashboard is not on Render
+
+It was, and it worked, but it made the demo slow to open. Render's free tier
+spins a service down after about 15 minutes idle and allows **750 instance-hours
+a month across the whole account**, which funds exactly one always-awake service
+(730h). With the dashboard and the gateway both on Render, two services sit in
+the path of the first page load and only one of them can be kept warm, so a
+visitor waits either way.
+
+Vercel hosts the dashboard for free without spinning down and without touching
+that budget, which frees the full 730h for the gateway. Both hops are then warm
+and the demo opens instantly. Low traffic makes this matter more, not less:
+visits are rare and spread out, so essentially every visit would be a cold one.
 - The gateway and ledger run **in one process** here (`services/ledger/cmd/renderall`),
   not as two services talking gRPC over the network. Render's free plan
   doesn't resolve private short hostnames between web services, and gRPC over
@@ -50,17 +66,25 @@ picked up by the next transfer.
 
 ## Cost and the one real caveat
 
-Everything here is free. The tradeoff is **cold starts**: free Render services
-spin down after about 15 minutes idle, so the first request after a quiet spell
-wakes the chain (web, then gateway+ledger, then fraud) and can take up to a
-minute or so. The dashboard shows a transfer immediately once it's awake; its
-fraud flag appears a beat later, once the fraud service has woken and scored.
-For a portfolio demo this is fine. Refreshing the fraud page after a few seconds
-shows the flag.
+Everything here is free. The tradeoff is **cold starts** on the Render side.
+Nothing needs waking by hand: any inbound HTTP request to a service's *public*
+URL wakes it, and the dashboard's own fetch is such a request. Keeping the
+gateway pinged (step 3 below) removes the wait a visitor would see.
 
-Render only auto-wakes a service on an inbound request to its *public* URL. If
-a page still 502s a few seconds after you load it, the service it depends on
-(e.g. `tally-fraud`) may just still be waking, refresh again in 10-20s.
+What is left after that:
+
+- **`tally-fraud`** still sleeps, and that is fine. After a transfer commits the
+  gateway fires a background `POST /score-pending` with a 90s timeout
+  (`services/internal/app/app.go`), so the fraud service wakes on its own. A
+  transfer appears in the dashboard immediately; its fraud flag appears a beat
+  later. Because `/score-pending` scores *all* unscored transfers, even a nudge
+  that dies against a cold container is picked up by the next one.
+- **Vercel caps a server render at 60 seconds** on the free plan, and a cold
+  Render container can take nearly that long. If the gateway is ever cold, the
+  first load can fail instead of just being slow. The dashboard catches this and
+  shows "Could not reach the API" with a retry button (`web/app/error.tsx`)
+  rather than a stack trace. One retry works, because the wake is already under
+  way. The keepalive ping is what stops this happening at all.
 
 ## Steps
 
@@ -78,32 +102,70 @@ a page still 502s a few seconds after you load it, the service it depends on
      up
    ```
 
-### 2. Render (everything)
+### 2. Render (backend)
 
 1. Push this repo to GitHub.
 2. In Render: **New > Blueprint**, select the repo. Render reads
-   [`render.yaml`](../render.yaml) and creates the three services
-   (`tally-web`, `tally-gateway`, `tally-fraud`) plus the `tally-secrets` env
-   group. (If you previously created a standalone `tally-ledger` service
-   while debugging, it's no longer needed, you can delete it.)
+   [`render.yaml`](../render.yaml) and creates the two services
+   (`tally-gateway`, `tally-fraud`) plus the `tally-secrets` env group. (If you
+   previously created a standalone `tally-ledger` service while debugging, it's
+   no longer needed, you can delete it.)
 3. Set `DATABASE_URL` in the **tally-secrets** env group to the Neon string from
    step 1. The gateway (which now embeds the ledger) and fraud services share it.
-4. Deploy. The `tally-web` service's public URL
-   (`https://tally-web-*.onrender.com`) is the app; open it in a browser.
+4. Set `FRAUD_SCORE_URL` on `tally-gateway` to `tally-fraud`'s public URL. It
+   needs an `http://` or `https://` scheme. Set it by hand in the dashboard.
+5. Deploy, then check `https://tally-gateway-*.onrender.com/healthz` responds.
 
-Notes:
-- `tally-gateway` runs `services/ledger/cmd/renderall`, the ledger and gateway combined
-  in one process (see the architecture note above). `API_URL` on `tally-web`
-  should point at `tally-gateway`'s public URL; `FRAUD_SCORE_URL` on
-  `tally-gateway` should point at `tally-fraud`'s public URL. Both just need
-  `http://` or `https://` a scheme, set them by hand in the dashboard if the
-  blueprint didn't wire them.
-- Free services spin down after ~15 min idle, and Render only auto-wakes a
-  service on an inbound request to its *public* URL. If a dependent service
-  (e.g. `tally-fraud`) has been idle, the first call to it after a quiet spell
-  may fail once while it wakes, retry after a few seconds.
+`tally-gateway` runs `services/ledger/cmd/renderall`, the ledger and gateway
+combined in one process (see the architecture note above).
 
-### 3. Seed demo data (optional)
+If you are migrating from the older all-Render setup, delete the leftover
+`tally-web` service in the Render dashboard. Removing it from `render.yaml`
+stops Render managing it, but does not delete it, and an orphaned free service
+keeps consuming your 750 instance-hours.
+
+### 3. Vercel (dashboard)
+
+1. In Vercel: **Add New > Project**, select the same repo.
+2. Set **Root Directory** to `web`. Vercel detects Next.js on its own; leave the
+   build and output settings alone.
+3. Add one environment variable: `API_URL` = `tally-gateway`'s public URL, for
+   example `https://tally-gateway-abc.onrender.com`. Apply it to all
+   environments.
+4. Deploy. The Vercel URL is the app.
+
+The browser only ever calls same-origin `/api/*`, which
+[`web/next.config.mjs`](../web/next.config.mjs) rewrites to `API_URL`, so there
+is no CORS to configure anywhere. Server components read `API_URL` directly.
+`output: "standalone"` in that config is for the local Docker build; Vercel
+ignores it.
+
+Vercel's free tier is Hobby, which is non-commercial only. A portfolio project
+qualifies.
+
+### 4. Keep the gateway awake
+
+Without this, the first visit after a quiet spell waits up to a minute for
+Render to wake the gateway. With it, the demo opens instantly.
+
+Point any free cron pinger at the gateway's health endpoint every 10 minutes:
+
+```
+https://tally-gateway-abc.onrender.com/healthz
+```
+
+[cron-job.org](https://cron-job.org) is the simple option. Avoid GitHub Actions
+for this: scheduled workflows are disabled automatically after 60 days of repo
+inactivity, which a finished portfolio repo hits, and its cron firing times drift
+by tens of minutes under load.
+
+At a 10 minute interval this costs about 730 of your 750 monthly free instance
+hours, so `tally-fraud` has roughly 20 hours of headroom. That is plenty, since
+it only wakes when a transfer is made. If you ever exceed the cap Render suspends
+free services for the rest of the month, so if you expect heavy demo traffic,
+ping on a daytime window only (say 12 hours a day, ~360h) instead of 24/7.
+
+### 5. Seed demo data (optional)
 
 Point the seed script at the live gateway:
 

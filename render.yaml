@@ -17,12 +17,15 @@
 #     and docs/deploy.md for the full explanation.
 #   - Every process is a "web" service, because that is the only instance type
 #     Render offers for free.
-#   - The Next.js dashboard (tally-web) deploys here too, as a third service.
-#     Everything, frontend and backend, lives on one platform.
+#   - The Next.js dashboard is NOT here. It deploys to Vercel, whose free tier
+#     does not spin down, so the page always paints instantly. See docs/deploy.md.
 #
 # Caveat: free services spin down when idle, so the first request after a quiet
-# spell cold-starts the chain (web, then gateway+ledger, then fraud) and can
-# take up to a minute. That is the price of free; see docs/deploy.md.
+# spell cold-starts the chain (gateway+ledger, then fraud) and can take up to a
+# minute. Render's free plan allows 750 instance-hours a month across the whole
+# account, which is just enough to keep one service awake: pinging
+# tally-gateway's /healthz every 10 minutes costs ~730h and removes the cold
+# start users actually see. See docs/deploy.md.
 #
 # Before the first deploy, run the database migrations once against Neon
 # (command in docs/deploy.md). Nothing here runs them for you.
@@ -57,11 +60,3 @@ services:
     healthCheckPath: /healthz
     envVars:
       - fromGroup: tally-secrets
-
-  - type: web
-    name: tally-web
-    runtime: docker
-    plan: free
-    region: oregon
-    dockerfilePath: ./web/Dockerfile
-    dockerContext: ./web
