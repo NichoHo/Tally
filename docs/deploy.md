@@ -148,7 +148,7 @@ qualifies.
 Without this, the first visit after a quiet spell waits up to a minute for
 Render to wake the gateway. With it, the demo opens instantly.
 
-Point any free cron pinger at the gateway's health endpoint every 10 minutes:
+Point any free cron pinger at the gateway's health endpoint every **5 minutes**:
 
 ```
 https://tally-gateway-abc.onrender.com/healthz
@@ -159,11 +159,21 @@ for this: scheduled workflows are disabled automatically after 60 days of repo
 inactivity, which a finished portfolio repo hits, and its cron firing times drift
 by tens of minutes under load.
 
-At a 10 minute interval this costs about 730 of your 750 monthly free instance
-hours, so `tally-fraud` has roughly 20 hours of headroom. That is plenty, since
-it only wakes when a transfer is made. If you ever exceed the cap Render suspends
-free services for the rest of the month, so if you expect heavy demo traffic,
-ping on a daytime window only (say 12 hours a day, ~360h) instead of 24/7.
+**Why 5 minutes.** Render spins a free service down after 15 minutes idle, so
+that is the ceiling. The interval does not change the cost: instance-hours are
+billed on wall-clock uptime, not per request, so a service that never sleeps
+costs the same 730h a month whether you ping it every 5 minutes or every 14.
+Since frugality buys nothing here, pick for reliability instead. At a 10 minute
+interval a single late or failed ping opens a 20 minute gap and the service
+sleeps anyway; at 5 minutes one miss is a 10 minute gap, still inside the
+window. A `/healthz` request is a few hundred bytes, so the extra pings cost
+nothing against the 100GB free bandwidth.
+
+That 730h leaves about 20 of your 750 monthly free instance hours for
+`tally-fraud`. That is plenty, since it only wakes when a transfer is made. If
+you exceed the cap Render suspends free services for the rest of the month, so
+if you expect heavy demo traffic, ping on a daytime window only (say 12 hours a
+day, ~360h) instead of 24/7.
 
 ### 5. Seed demo data (optional)
 

@@ -23,9 +23,9 @@
 # Caveat: free services spin down when idle, so the first request after a quiet
 # spell cold-starts the chain (gateway+ledger, then fraud) and can take up to a
 # minute. Render's free plan allows 750 instance-hours a month across the whole
-# account, which is just enough to keep one service awake: pinging
-# tally-gateway's /healthz every 10 minutes costs ~730h and removes the cold
-# start users actually see. See docs/deploy.md.
+# account, which is just enough to keep one service awake: an external cron
+# pinging tally-gateway's /healthz every 5 minutes keeps it up 24/7 (~730h) and
+# removes the cold start users actually see. See docs/deploy.md.
 #
 # Before the first deploy, run the database migrations once against Neon
 # (command in docs/deploy.md). Nothing here runs them for you.
